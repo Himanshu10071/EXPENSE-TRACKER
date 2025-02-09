@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body> 
+    <header>
+        <h1 class="logo">EXPENSE TRACKER</h1>
+    </header>
+
+    <!-- tool bar -->
+    <div class="container">
+        <div class="total">
+            Total Expense: <span class="total-amount amount">0.00</span>
+        </div>
+        <button class="remove_filter">Remove Filter</button>
+        <div class="header">
+            <div class="search-bar">
+                <select class="filter-by-category" required>
+                    <option value="">Filter By Category</option>
+                    <option value="shopping">Shopping</option>
+                    <option value="entertainment">Entertainment</option>
+                    <option value="education">Education</option>
+                    <option value="vehicle">Vehicle</option>
+                    <option value="household">Household</option>
+                    <option value="insurance">Insurance</option>
+                </select>
+            </div>
+            <button class="add-btn">Add</button>
+        </div>
+    </div>
+
+
+    <!-- add popup window -->
+
+    <div class="modal" id="expenseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Expense</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+
+
+            <form class="expenseForm">
+                <div class="form-field">
+                    <label for="amount">Amount</label>
+                    <input type="number" id="amount" placeholder="Enter amount" required>
+                </div>
+                <div class="form-field">
+                    <label for="category">Category</label>
+                    <select id="category" required>
+                        <option value="">Select category</option>
+                        <option value="shopping">Shopping</option>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="education">Education</option>
+                        <option value="vehicle">Vehicle</option>
+                        <option value="household">Household</option>
+                        <option value="insurance">Insurance</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" required>
+                </div>
+                <div class="form-field">
+                    <label for="notes">Notes (Optional)</label>
+                    <input type="text" id="notes" placeholder="Add notes">
+                </div>
+                <button type="submit" class="submit-btn">Add Expense</button>
+            </form>
+        </div>
+    </div>
+    
+
+    <div class="information">
+
+        <div class="expense-container">
+
+            
+
+        </div>  
+
+        <div class="chart_currency">
+            <div class="card">
+                <h2 class="card-title">Expense Summary</h2>
+                <div class="bar-chart" id="barChart"></div>
+            </div>
+    
+    
+            <div class="currency-select-container">
+                <select class="currency-select">
+                    <option value="">Change Currency</option>
+                </select>
+            </div>
+
+        </div>
+        
+
+    </div>
+    
+
+
+    <script src="https://unpkg.com/shortid-dist@1.0.5/dist/shortid-2.2.13.min.js"></script>
+    <script src="temp.js"></script>
+</body>
+</html>
