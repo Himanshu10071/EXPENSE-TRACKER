@@ -11,7 +11,29 @@
  let close_btn = document.querySelector('.close-btn');
  close_btn.onclick = (()=>{
      modal.style.display = 'none';
+     
  })
+
+
+
+
+ let expenseArray = JSON.parse(localStorage.getItem("expenses")) || [];
+
+
+ // making expenses
+ function initialize(){
+    for (let i = 0; i < expenseArray.length; i++) {
+        createExpenseCard(
+            expenseArray[i].amount,
+            expenseArray[i].category,
+            expenseArray[i].date,
+            expenseArray[i].note
+        );
+    }
+    
+ }
+ initialize();
+
 
  let form = document.querySelector('.expenseForm');
  form.addEventListener('submit' , (e)=>{
@@ -27,7 +49,21 @@
      createExpenseCard(amount , category , date , note);
      modal.style.display = 'none';
 
-    //  e.target.reset();
+
+     onlyNumbersInput();
+
+
+
+    updatingExpenseArray(category , amount);
+
+    updateBarChart();
+        
+    console.log(expenseArray)
+    expenseArray.push({amount :amount , category:category , date :date , note : note});
+    updateLocalStorage();
+
+     
+     e.target.reset();
  }) 
      
 
@@ -71,18 +107,70 @@ function createExpenseCard(amount , category , date , note){
 
     // total amount
     totalAmountSum(expense_div);
-    
+
 }
 
 
 // making the delete btn work
 function expenseDelete(expenseCard){
     let deleteBtn = expenseCard.querySelector('.delete-btn');
+    let id = expenseCard.getAttribute('data-id');
+    
+    let index = expenseCardIndex(id);
     deleteBtn.addEventListener('click', function(){
+        updatingTotalAmountAfterDeleting(expenseCard);
+        expenseArray.splice(index , 1);
+        updateLocalStorage();
         expenseCard.remove();
     })
+    
 }
 
+
+
+
+
+
+
+
+
+// updating total amount of money after deleting a expense
+function updatingTotalAmountAfterDeleting(expenseCard){
+    let amount =   expenseCard.querySelector('.amount').innerText;
+    amount = Number(amount);
+    let totalAmount = document.querySelector('.total-amount').innerText;
+    totalAmount = Number(totalAmount);
+
+    document.querySelector('.total-amount').innerText = totalAmount - amount;
+}
+
+
+
+
+function updatingTotalAmountAfterEditing(expenseCard , newAmount , oldAmount){
+    newAmount = Number(newAmount);
+    oldAmount = Number(oldAmount);
+    let category = expenseCard.querySelector('.category').innerText;
+    
+    if(oldAmount>newAmount){
+        let totalAmount = document.querySelector('.total-amount').innerText;
+        totalAmount = Number(totalAmount);
+        document.querySelector('.total-amount').innerText = totalAmount -oldAmount + newAmount ;
+        let amount = (totalAmount - newAmount-oldAmount)
+        updatingExpenseArray(category , amount);      
+    }
+    else{
+        let totalAmount = document.querySelector('.total-amount').innerText;
+        totalAmount = Number(totalAmount);
+
+        document.querySelector('.total-amount').innerText = totalAmount + newAmount - oldAmount;
+
+        let amount =  (totalAmount + newAmount-oldAmount);
+        updatingExpenseArray(category , amount);
+    }
+
+    
+}
 
 // making the edit button work
 function editable(expenseCard){
@@ -91,19 +179,27 @@ function editable(expenseCard){
     let editBtn = expenseCard.querySelector('.edit-btn');
     let allEditables = expenseCard.querySelectorAll('.editable');
 
+    let oldAmount = expenseCard.querySelector('.amount').innerText;
 
     editBtn.addEventListener('click',()=>{
+        
         if(edit_btn_flag){
             allEditables.forEach((editable) => {
                 editable.setAttribute('contenteditable' , true);  
             })
             editBtn.innerText = "Save";
+
         }
         else{
             allEditables.forEach((editable) => {
                 editable.setAttribute('contenteditable' , false);  
             })
             editBtn.innerText = "Edit";
+
+            const newAmount = expenseCard.querySelector('.amount').innerText;
+            updatingTotalAmountAfterEditing(expenseCard , newAmount , oldAmount);
+
+            
         }
         edit_btn_flag = !edit_btn_flag;
     })
@@ -124,7 +220,7 @@ function totalAmountSum(expenseCard){
 
     
     //updating total amount
-    document.querySelector('.total-amount').innerText = cardAmount + previousExpense;
+    document.querySelector('.total-amount').innerText = Number(cardAmount + previousExpense);
 
 }
 
@@ -153,13 +249,25 @@ function totalAmountSum(expenseCard){
 
  // bar chart js
  let expenses = [
-    { category: "Shopping", amount: 21000 },
-    { category: "Entertainment", amount: 1000 },
-    { category: "Education", amount: 1500 },
-    { category: "Vehicle", amount: 1000 },
-    { category: "Household", amount: 8000 },
-    { category: "Insurance", amount: 3000 }
+    { category: "shopping", amount: 0 },
+    { category: "entertainment", amount: 0 },
+    { category: "education", amount: 0 },
+    { category: "vehicle", amount: 0 },
+    { category: "household", amount:0 },
+    { category: "insurance", amount: 0 }
 ];
+
+
+function updatingExpenseArray(category , amount){
+    let index = expenses.findIndex(element => {
+        return element.category===category;
+    })
+    // console.log(typeof expenses[index].amount)
+    //  = Number(expenses[index].amount);
+    expenses[index].amount += Number(amount);
+    console.log(expenses);
+}
+
 
 // Category colors
 const categoryColors = {
@@ -171,14 +279,18 @@ const categoryColors = {
     insurance: "#ef4444"
 };
 
-// Function to update the bar graph dynamically
+
+
+// function to update the bar graph 
 function updateBarChart() {
+
     let total = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+
     let barChart = document.getElementById("barChart");
-    barChart.innerHTML = ""; // Clear previous bars
+    barChart.innerHTML = ""; 
 
     expenses.forEach(exp => {
-        let barHeight = (exp.amount / total) * 100; // Scale bar height
+        let barHeight = (exp.amount / total) * 100;
         let bar = document.createElement("div");
         bar.classList.add("bar");
         bar.style.height = `${barHeight}%`;
@@ -188,10 +300,8 @@ function updateBarChart() {
         barChart.appendChild(bar);
     });
 
-    // Update total amount
 }
 
-// Call function initially
 updateBarChart();
 
 
@@ -226,7 +336,7 @@ let removeFilter = document.querySelector('.remove_filter').onclick = (()=>{
 
 // changing currency works
 
-const apiKey = "22ea93f4d90ebbe0698765f9"; 
+const apiKey = "b9b54952e6aba45b3c4c4def"; 
 const API_URL = `https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`;
 
 let currencySelect = document.querySelector('.currency-select');
@@ -259,18 +369,27 @@ addCurrenciesInSelect();
 
 
 
+// to change the currency to all the expenses
+let from = 'INR';
 currencySelect.addEventListener('change' , async ()=>{
     let amounts = document.querySelectorAll('.amount');
-
-    // console.log(currencySelect.value);
+    let to = currencySelect.value;
+    
+    let amount = 1;
     try{
-        const response = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/INR`);
+        const response = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/${from}`);
         const data = await response.json();
 
-        // if(data.conversion_rates[currencySelect.value]){
-        //    cons
-        // }
-        console.log(data.conversion_rates)
+        amounts.forEach((amount) => {
+            let value = amount.innerText;
+            if(data.conversion_rates[to]){
+                amount.innerText = (value * data.conversion_rates[to]).toFixed(2);
+                from = to;
+            }
+        })
+
+        let currentCurrency = document.querySelector('.current-currency');
+        currentCurrency.innerText = from;
     }
     catch(error){
         console.error("Error changing currency:", error);
@@ -280,4 +399,39 @@ currencySelect.addEventListener('change' , async ()=>{
 
 
 
+// making the amount while editing only numbers
+function onlyNumbersInput(){
+    const amountDivs = document.querySelectorAll(".amount");
+    amountDivs.forEach(div => {
+        div.addEventListener('keypress' , (e)=>{
 
+            if (
+                e.key === "Backspace" ||
+                e.key === "Delete" ||
+                e.key === "ArrowLeft" ||
+                e.key === "ArrowRight" ||
+                e.key === "Enter"
+            ) {
+                return; 
+            }
+            if(!/[0-9]/.test(e.key)){
+                    window.alert('Please Enter A Number');
+            }
+        })
+
+        div.addEventListener("input", function () {
+            this.innerText = this.innerText.replace(/\D/g, ""); // Remove all non-digit characters
+        });
+    })
+}
+
+
+
+
+
+
+
+
+function updateLocalStorage(){
+    localStorage.setItem("expenses", JSON.stringify(expenseArray));
+}
