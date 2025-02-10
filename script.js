@@ -17,23 +17,6 @@
 
 
 
- let expenseArray = JSON.parse(localStorage.getItem("expenses")) || [];
-
-
- // making expenses
- function initialize(){
-    for (let i = 0; i < expenseArray.length; i++) {
-        createExpenseCard(
-            expenseArray[i].amount,
-            expenseArray[i].category,
-            expenseArray[i].date,
-            expenseArray[i].note
-        );
-    }
-    
- }
- initialize();
-
 
  let form = document.querySelector('.expenseForm');
  form.addEventListener('submit' , (e)=>{
@@ -43,10 +26,10 @@
      let amount = formField[0].value;
      let date = formField[1].value;
      let note = formField[2].value;
-     
+     const id = shortid();
      let category = document.querySelector('#category').value;
     
-     createExpenseCard(amount , category , date , note);
+     createExpenseCard(id , amount , category , date , note);
      modal.style.display = 'none';
 
 
@@ -54,22 +37,25 @@
 
 
 
-    updatingExpenseArray(category , amount);
+    updatingExpenseArray(true , category , amount);
 
-    updateBarChart();
+    updateBarChart(expenses);
         
-    console.log(expenseArray)
-    expenseArray.push({amount :amount , category:category , date :date , note : note});
+    expenseArray.push({ uniqueID : id ,amount :amount , category:category , date :date , note : note});
     updateLocalStorage();
 
      
      e.target.reset();
+
+     console.log(expenseArray);
  }) 
+
+
      
 
-function createExpenseCard(amount , category , date , note){
+function createExpenseCard( id , amount , category , date , note){
     // console.log(amount , category , date , note);
-    const id = shortid();
+    
     let expense_div = document.createElement('div');
     expense_div.classList.add('expense-card');
     expense_div.setAttribute('data-id', id);
@@ -117,15 +103,41 @@ function expenseDelete(expenseCard){
     let id = expenseCard.getAttribute('data-id');
     
     let index = expenseCardIndex(id);
+    
+    let category = expenseCard.getAttribute('data-category');
+
+    let deletedAmount = expenseCard.querySelector('.amount').innerText;
+    deletedAmount = Number(deletedAmount);
     deleteBtn.addEventListener('click', function(){
         updatingTotalAmountAfterDeleting(expenseCard);
+
+        
+
+
+
+
         expenseArray.splice(index , 1);
-        updateLocalStorage();
+        console.log(id);
+        console.log(index);
+
+        
         expenseCard.remove();
+
+
+        updatingExpenseArray(false , category  ,deletedAmount);
+        
+        updateLocalStorage();
+        
+
+        updateBarChart(expenses);
+
+
+
+        // 
+        
     })
     
 }
-
 
 
 
@@ -157,7 +169,7 @@ function updatingTotalAmountAfterEditing(expenseCard , newAmount , oldAmount){
         totalAmount = Number(totalAmount);
         document.querySelector('.total-amount').innerText = totalAmount -oldAmount + newAmount ;
         let amount = (totalAmount - newAmount-oldAmount)
-        updatingExpenseArray(category , amount);      
+        updatingExpenseArray(true, category , amount);      
     }
     else{
         let totalAmount = document.querySelector('.total-amount').innerText;
@@ -166,7 +178,7 @@ function updatingTotalAmountAfterEditing(expenseCard , newAmount , oldAmount){
         document.querySelector('.total-amount').innerText = totalAmount + newAmount - oldAmount;
 
         let amount =  (totalAmount + newAmount-oldAmount);
-        updatingExpenseArray(category , amount);
+        updatingExpenseArray(true , category , amount);
     }
 
     
@@ -199,7 +211,8 @@ function editable(expenseCard){
             const newAmount = expenseCard.querySelector('.amount').innerText;
             updatingTotalAmountAfterEditing(expenseCard , newAmount , oldAmount);
 
-            
+            // let arrayFromLocalStorage = JSON.parse(localStorage.getItem('chartData')) || [];
+            // updateBarChart(arrayFromLocalStorage);
         }
         edit_btn_flag = !edit_btn_flag;
     })
@@ -227,17 +240,22 @@ function totalAmountSum(expenseCard){
 
 
  function expenseCardIndex(id){
-    let expenseCards = document.querySelectorAll('.expense-card');
-    let index;
-
-    for(let i = 0 ;i<expenseCards.length;i++){
-        if(id===expenseCards[i].getAttribute('data-id')){
-            index = i;
-            break;
-        }
-    }
+    // let expenseCards = document.querySelectorAll('.expense-card');
+    // let index;
+    // console.log(expenseCards);
+    // for(let i = 0 ;i<expenseCards.length;i++){
+    //     if(id===expenseCards[i].getAttribute('data-id')){
+    //         index = i;
+    //         break;
+    //     }
+    // }
     
-    return index;
+    // return index;
+
+    const Index = expenseArray.findIndex(function (expense) {
+        return expense.uniqueID === id;
+      });
+      return Index;
  }
 
 
@@ -258,15 +276,23 @@ function totalAmountSum(expenseCard){
 ];
 
 
-function updatingExpenseArray(category , amount){
+
+function updatingExpenseArray(flag , category , amount){
     let index = expenses.findIndex(element => {
         return element.category===category;
     })
-    // console.log(typeof expenses[index].amount)
-    //  = Number(expenses[index].amount);
-    expenses[index].amount += Number(amount);
-    console.log(expenses);
+
+
+    if(flag){
+        expenses[index].amount += Number(amount);
+    }
+    else{
+        if(expenses[index].amount - Number(amount)<0) expenses[index].amount = 0;
+        else expenses[index].amount -= Number(amount)
+    } 
 }
+
+
 
 
 // Category colors
@@ -282,7 +308,7 @@ const categoryColors = {
 
 
 // function to update the bar graph 
-function updateBarChart() {
+function updateBarChart(expenses) {
 
     let total = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
@@ -295,14 +321,13 @@ function updateBarChart() {
         bar.classList.add("bar");
         bar.style.height = `${barHeight}%`;
         bar.style.background = categoryColors[exp.category.toLowerCase()] || "#ccc"; // Assign color
-        bar.setAttribute("data-amount", `$${exp.amount}`);
+        bar.setAttribute("data-amount", `${exp.amount}`);
         bar.innerHTML = `<small>${exp.category}</small>`;
         barChart.appendChild(bar);
     });
 
 }
 
-updateBarChart();
 
 
 
@@ -369,35 +394,57 @@ addCurrenciesInSelect();
 
 
 
-// to change the currency to all the expenses
+// //  to change the currency to all the expenses
+
+
+
 let from = 'INR';
-currencySelect.addEventListener('change' , async ()=>{
+currencySelect.addEventListener('change', async () => {
     let amounts = document.querySelectorAll('.amount');
     let to = currencySelect.value;
     
-    let amount = 1;
-    try{
+    try {
         const response = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/${from}`);
         const data = await response.json();
-
-        amounts.forEach((amount) => {
-            let value = amount.innerText;
-            if(data.conversion_rates[to]){
-                amount.innerText = (value * data.conversion_rates[to]).toFixed(2);
-                from = to;
-            }
-        })
-
-        let currentCurrency = document.querySelector('.current-currency');
-        currentCurrency.innerText = from;
-    }
-    catch(error){
+        
+        // Only proceed if we're actually changing to a different currency
+        if (to !== from && data.conversion_rates[to]) {
+            amounts.forEach((amountElement) => {
+                let value = amountElement.innerText;
+                amountElement.innerText = (value * data.conversion_rates[to]).toFixed(2);
+            });
+        }
+            // Update current currency display
+            let currentCurrency = document.querySelector('.current-currency');
+            currentCurrency.innerText = to;
+            
+            // Update expense array and chart data
+            let allExpensesCards = document.querySelectorAll('.expense-card');
+            allExpensesCards.forEach((card, index) => {
+                let newAmount = Number(card.querySelector('.amount').innerText);
+                let category = card.getAttribute('data-category');
+                expenseArray[index].amount = newAmount;
+                
+                // Update the chart data
+                let expenseIndex = expenses.findIndex(exp => exp.category === category);
+                if (expenseIndex !== -1) {
+                    expenses[expenseIndex].amount = newAmount;
+                }
+            });
+            
+            // Update the from currency AFTER all conversions are done
+            from = to;
+            
+            // Store current currency
+            localStorage.setItem('currency', JSON.stringify([{currency: to}]));
+            updateLocalStorage();
+            
+            
+        
+    } catch(error) {
         console.error("Error changing currency:", error);
     }
 });
-
-
-
 
 // making the amount while editing only numbers
 function onlyNumbersInput(){
@@ -431,7 +478,49 @@ function onlyNumbersInput(){
 
 
 
+let expenseArray = JSON.parse(localStorage.getItem("expenses")) || [];
+
+
+// making expenses
+function initialize(){
+   // making the expense card works
+   for (let i = 0; i < expenseArray.length; i++) {
+       createExpenseCard(
+            expenseArray[i].uniqueID,
+           expenseArray[i].amount,
+           expenseArray[i].category,
+           expenseArray[i].date,
+           expenseArray[i].note
+       );
+   }
+
+   // making the chart data presists
+   let arrayFromLocalStorage = JSON.parse(localStorage.getItem('chartData')) || [];
+   updateBarChart(arrayFromLocalStorage);
+   
+
+   // setting uup the currenct currency
+   let currentCurrency = document.querySelector('.current-currency');
+    currentCurrency.innerText = JSON.parse(localStorage.getItem('currency'))[0].currency;
+
+
+
+   // making the initial currency INR
+    let amounts = document.querySelectorAll('.amount');
+    if(amounts.length==1){
+        localStorage.setItem('currency' , JSON.stringify([{currency : 'INR'}]));
+    }
+}
+initialize();
+
+
+
+
 
 function updateLocalStorage(){
     localStorage.setItem("expenses", JSON.stringify(expenseArray));
+    localStorage.setItem("chartData" , JSON.stringify(expenses));
 }
+
+
+
